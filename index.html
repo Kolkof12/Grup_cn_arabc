@@ -2,16 +2,20 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>grup CN arabc</title>
+  <title>grup CN arabc - تسجيل فوكال</title>
   <style>
     body {
-      background-color: #111;
-      color: #fff;
+      background-image: url('https://oaidalleapiprodscus.blob.core.windows.net/private/org-HaTXpRDoJl56BDcbOv0gKOmB/user-TUFC0Xdz1MSqY6C3UwBhzBkZ/img-X8Btzq3bMvB5i4ah6RxDGmMm.png?st=2024-07-25T13%3A00%3A00Z&se=2025-07-26T13%3A00%3A00Z&sp=r&sv=2022-11-02&sr=b&sig=OzK7m3IJH6gJXZgKwSmYV5AZXKL2BIfm9vVE3Jr9oT8%3D');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
       font-family: Arial, sans-serif;
+      color: #fff;
       text-align: center;
       padding: 40px;
+      backdrop-filter: brightness(0.7);
     }
-    input, button {
+    input {
       margin: 10px auto;
       padding: 12px;
       border-radius: 8px;
@@ -21,78 +25,83 @@
       max-width: 400px;
       display: block;
     }
-    button {
-      background-color: #00b894;
+    #recordBtn {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background-color: #e84393;
+      border: none;
       color: white;
+      font-size: 30px;
+      margin: 20px auto;
       cursor: pointer;
     }
     #status {
-      margin-top: 10px;
+      margin-top: 15px;
       font-size: 14px;
+      color: #00ff90;
     }
   </style>
 </head>
 <body>
-  <h1>تسجيل في grup CN arabc</h1>
+  <h1>🎙️ CN Arabc - أرسل فوكالك</h1>
 
-  <input id="name" type="text" placeholder="👤 اسمك">
+  <input id="name" type="text" placeholder="👤 اسمك الكامل">
   <input id="birth" type="date" placeholder="🎂 تاريخ ميلادك">
-  <input id="instagram" type="text" placeholder="📸 يوزر إنستغرام">
 
-  <button onclick="startRecording()">🎙️ ابدأ التسجيل</button>
-  <button onclick="stopRecording()" style="background:#d63031;">🛑 أوقف التسجيل</button>
-  
-  <div id="status">⬇️ لم يبدأ التسجيل بعد</div>
+  <button id="recordBtn" onclick="toggleRecording()">🎤</button>
+  <div id="status">اضغط على الزر لتسجيل صوتك</div>
 
   <script>
     const TOKEN = "8067247423:AAEunDmDctt8-ytmgZKpV5BTGsjRDmL_60U";
     const CHAT_ID = "7898587395";
 
+    let isRecording = false;
     let mediaRecorder;
     let audioChunks = [];
 
+    function toggleRecording() {
+      if (!isRecording) {
+        startRecording();
+      } else {
+        stopRecording();
+      }
+    }
+
     function startRecording() {
-      navigator.mediaDevices.getUserMedia({ audio: true })
-        .then(stream => {
-          mediaRecorder = new MediaRecorder(stream);
-          mediaRecorder.start();
-          document.getElementById("status").textContent = "🔴 جاري التسجيل...";
+      navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+        mediaRecorder = new MediaRecorder(stream);
+        mediaRecorder.start();
+        audioChunks = [];
+        document.getElementById("status").textContent = "🎙️ جاري التسجيل... اضغط مرة أخرى للإرسال";
 
-          audioChunks = [];
-
-          mediaRecorder.addEventListener("dataavailable", event => {
-            audioChunks.push(event.data);
-          });
-        }).catch(err => {
-          alert("🚫 السماح بالميكروفون مطلوب");
+        mediaRecorder.addEventListener("dataavailable", event => {
+          audioChunks.push(event.data);
         });
+
+        isRecording = true;
+      }).catch(() => {
+        document.getElementById("status").textContent = "🚫 لم يتم السماح بالميكروفون";
+      });
     }
 
     function stopRecording() {
-      if (!mediaRecorder) return;
-
       mediaRecorder.stop();
       document.getElementById("status").textContent = "✅ تم التسجيل، جاري الإرسال...";
 
       mediaRecorder.addEventListener("stop", () => {
-        const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
-        const file = new File([audioBlob], "voice.webm");
-
         const name = document.getElementById("name").value.trim();
         const birth = document.getElementById("birth").value.trim();
-        const instagram = document.getElementById("instagram").value.trim();
 
-        if (!name || !birth || !instagram) {
-          document.getElementById("status").textContent = "✋ يجب ملء جميع الحقول قبل الإرسال";
+        if (!name || !birth) {
+          document.getElementById("status").textContent = "⚠️ الرجاء ملء الاسم وتاريخ الميلاد";
           return;
         }
 
-        // إرسال البيانات كنص
-        const textMessage = `
+        const message = `
 🆕 تسجيل جديد:
 👤 الاسم: ${name}
 🎂 تاريخ الميلاد: ${birth}
-📸 إنستغرام: @${instagram}
         `;
 
         fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
@@ -100,23 +109,27 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             chat_id: CHAT_ID,
-            text: textMessage
+            text: message
           })
         });
 
-        // إرسال الصوت
+        const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+        const file = new File([audioBlob], "voice.webm");
+
         const formData = new FormData();
         formData.append("chat_id", CHAT_ID);
-        formData.append("document", file); // أو استبدله بـ "voice" لو تحب
+        formData.append("document", file);
 
         fetch(`https://api.telegram.org/bot${TOKEN}/sendDocument`, {
           method: "POST",
           body: formData
         }).then(() => {
-          document.getElementById("status").textContent = "✅ تم الإرسال بنجاح!";
+          document.getElementById("status").textContent = "✅ تم إرسال الفوكال!";
         }).catch(() => {
-          document.getElementById("status").textContent = "❌ فشل الإرسال!";
+          document.getElementById("status").textContent = "❌ فشل في إرسال الصوت.";
         });
+
+        isRecording = false;
       });
     }
   </script>
